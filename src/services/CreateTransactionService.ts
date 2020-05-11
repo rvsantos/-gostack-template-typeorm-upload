@@ -1,5 +1,5 @@
 import { getCustomRepository, getRepository } from 'typeorm';
-// import AppError from '../errors/AppError';
+import AppError from '../errors/AppError';
 
 import TransactionRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
@@ -20,6 +20,8 @@ class CreateTransactionService {
     type,
   }: IRequest): Promise<Transaction> {
     const transactionsRepository = getCustomRepository(TransactionRepository);
+
+    await this.isValidBalance(value, type);
 
     const transactionCategory = await this.findOrCreateCategory(category);
 
@@ -48,6 +50,14 @@ class CreateTransactionService {
     await categoryRepository.save(category);
 
     return category;
+  }
+
+  private async isValidBalance(value: number, type: string): Promise<void> {
+    const transactionsRepository = getCustomRepository(TransactionRepository);
+    const { total } = await transactionsRepository.getBalance();
+
+    if (total < value && type === 'outcome')
+      throw new AppError('You do not have enough balance');
   }
 }
 
